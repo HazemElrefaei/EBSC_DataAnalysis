@@ -77,7 +77,6 @@ def process_events(events):
     frames = []
     frames_1 = []
     frames_0 = []
-    first_event = True
     # Process each event
     for ev in tqdm(events, desc="Processing events to S1_raw"):
         x = int(ev[0])
@@ -85,10 +84,6 @@ def process_events(events):
         polarity = 1 if ev[2] else 0
         timedata = float(ev[3])
         
-        if first_event:
-            ts_first_ev = timedata
-            first_event = False
-            
         
         if Representation == 'RAW':
             set_RAW(S1_,x,y,polarity)   

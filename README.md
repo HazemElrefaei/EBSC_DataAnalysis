@@ -1,10 +1,11 @@
 # EBSC_DataAnalysis
 
-This repository provides tools for analyzing EBSC rover data and correcting camera image distortion using calibration parameters.
+This repository provides tools for analyzing EBSC rover data, generating event-based frames, and correcting camera image distortion using calibration parameters.
 
 ## Repository Structure
 
 - `EBSC_DataAnalysis.py`: Main script for processing rover HDF5 data, generating plots, and saving analysis results.
+- `EBSC_FramesGenerator.py`: Script for generating event-based frames (time surface or raw) from event camera data in HDF5 files.
 - `undistort_images.py`: Script for undistorting images using camera calibration parameters from a `.mat` file.
 - `CalibParameters_struct.mat`: Example MATLAB calibration file containing camera intrinsics and distortion coefficients.
 - `README.md`: Documentation and usage instructions.
@@ -16,7 +17,7 @@ This repository provides tools for analyzing EBSC rover data and correcting came
 Install dependencies using pip:
 
 ```sh
-pip install numpy scipy pandas opencv-python h5py tqdm plotly kaleido
+pip install numpy scipy pandas opencv-python h5py tqdm plotly kaleido matplotlib
 ```
 
 ---
@@ -46,7 +47,33 @@ This script reads rover data from HDF5 files, analyzes position, velocity, orien
 
 ---
 
-### 2. Image Undistortion (`undistort_images.py`)
+### 2. Event-Based Frame Generation (`EBSC_FramesGenerator.py`)
+
+This script generates frames from event camera data stored in HDF5 files. It supports different representations: `RAW`, `GRAY`, or `JET` (for time surfaces).
+
+#### Steps:
+
+1. **Edit Paths and Settings**
+   - Set `path_to_h5` to the folder containing your `.h5` data files.
+   - Set `output_dir` to your desired output folder for frames.
+   - Update `file_list` with the filenames (without `.h5` extension) you want to process.
+   - Set `Representation` to `'RAW'`, `'GRAY'`, or `'JET'` as needed.
+
+2. **Run the Script**
+   ```sh
+   python EBSC_FramesGenerator.py
+   ```
+   - Frames will be saved as PNG images in subfolders under `output_dir`.
+
+#### Output
+
+- For each file, a sequence of frame images is generated:
+  - `RAW`: polarity frames.
+  - `GRAY`/`JET`: time surface frames for positive and negative events.
+
+---
+
+### 3. Image Undistortion (`undistort_images.py`)
 
 This script uses camera calibration parameters to undistort images.
 
@@ -75,7 +102,7 @@ Suppose you have:
 - Distorted image: `distorted_image.png`
 - Data file: `2025_07_17_17_19_17_Vel1_Lev3_ON.h5`
 
-Set the paths in both scripts accordingly and run them as described above.
+Set the paths in all scripts accordingly and run them as described above.
 
 ---
 
@@ -83,6 +110,7 @@ Set the paths in both scripts accordingly and run them as described above.
 
 - If you encounter missing fields in the `.mat` file, ensure it contains the required keys.
 - For HDF5 data, verify the dataset names match those expected in the script.
+- For frame generation, ensure your event data follows the expected format: `[x, y, polarity, timestamp]`.
 
 ---
 
