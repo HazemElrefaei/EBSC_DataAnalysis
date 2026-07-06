@@ -1,0 +1,6 @@
+item,evidence
+OptiTrack accuracy,positional precision of ±0.15 mm
+OptiTrack sampling,Measured in this notebook from the processed 100 Hz time grid; raw ROS timestamps were resampled to 10 ms windows
+Wheel encoder resolution,0.01 dps
+Wheel encoder calibration,"Wheel radius = 0.10 m; track half-width = 0.22348 m; signs corrected as [+,+,-,-]"
+Slip computation,OptiTrack body-frame velocity and encoder reference velocity synchronized on the event-camera 10 ms time base; encoder reference is low-pass filtered before slip labels are saved
