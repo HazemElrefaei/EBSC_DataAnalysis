@@ -265,9 +265,9 @@ Set the paths in the relevant script or notebook and run the workflow you need:
 
 ---
 
-## License
+## Copyright
 
-This repository is for academic and research use. Please contact the authors for other uses.
+Copyright © 2025 KHALIFA UNIVERSITY FOR SCIENCE & TECHNOLOGY (KU) and the Technology Innovation Institute (TII). All rights reserved.
 
 ---
 
