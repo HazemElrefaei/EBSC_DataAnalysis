@@ -5,6 +5,7 @@ This repository provides tools for analyzing EBSC rover HDF5 data, validating th
 ## Repository Structure
 
 - `EBSC_DataAnalysis.py`: Main script for processing rover HDF5 data, generating plots, and saving analysis results.
+- `EBSC_PrepareDataset.py`: Script for converting raw EBSC HDF5 recordings into synchronized processed dataset files.
 - `EBSC_Validation.ipynb`: Notebook for validating the processed EBSC HDF5 dataset and generating manuscript-ready validation figures.
 - `EBSC_FramesGenerator.py`: Script for generating grayscale event-based time-surface frames from event camera data in HDF5 files.
 - `undistort_images.py`: Script for undistorting images using camera calibration parameters from a `.mat` file.
@@ -73,7 +74,101 @@ The same figures are also saved as `.pdf` and `.svg` files for publication use. 
 
 ## Usage
 
-### 1. Data Analysis (`EBSC_DataAnalysis.py`)
+### 1. Dataset Preparation (`EBSC_PrepareDataset.py`)
+
+Use this script to prepare the processed dataset used by the validation notebook and frame-generation script. It reads raw HDF5 recordings, synchronizes the sensors onto a common event-camera time base, computes derived labels, saves diagnostic plots, and writes one processed `.h5` file per trial.
+
+#### Input format
+
+Each raw input file is expected at:
+
+```text
+path_to_h5/<h5_file_name>.h5
+```
+
+The script expects these HDF5 groups and datasets:
+
+- `events/data`: event camera data with columns `[x, y, polarity, timestamp]`.
+- `opti_pos/data`: OptiTrack position and quaternion data.
+- `opti_pos/time`: OptiTrack ROS timestamps.
+- `motor_speed/data`: motor RPM data.
+- `motor_speed/time`: motor ROS timestamps.
+
+#### Steps
+
+1. Edit the constants and paths in `EBSC_PrepareDataset.py`:
+
+   ```python
+   window_size = 0.01
+   wheel_radius = 0.1
+   half_rover_length = 0.29
+   half_track_width = 0.22348
+   save_images = True
+
+   output_dir = r"Path\To\Output\\"
+   path_to_h5 = r"Path\To\H5\\"
+   h5_file_list = [
+       "2025_07_17_17_19_17_Vel1_Lev3_ON",
+   ]
+   ```
+
+   - `window_size`: synchronized output sampling interval in seconds. The default `0.01` creates a 100 Hz processed dataset.
+   - `wheel_radius`, `half_rover_length`, and `half_track_width`: rover geometry constants used to compute encoder reference velocity.
+   - `save_images`: set to `True` to save diagnostic PNG plots for each trial.
+   - `output_dir`: root folder where processed trial folders will be created.
+   - `path_to_h5`: folder containing the raw `.h5` files.
+   - `h5_file_list`: raw file names to process, without the `.h5` extension.
+
+2. Run the script:
+
+   ```sh
+   python EBSC_PrepareDataset.py
+   ```
+
+#### Processing performed
+
+- Converts event timestamps to seconds relative to the first event.
+- Builds a common 10 ms event time grid.
+- Resamples OptiTrack position/orientation and motor RPM onto the common grid.
+- Applies Kalman filtering to OptiTrack position and quaternion orientation.
+- Computes inertial velocity, body-frame velocity, angular velocity, motor RPM, encoder reference velocity, longitudinal slip ratio, and lateral slip angle.
+- Low-pass filters the encoder-derived reference velocity.
+
+#### Output
+
+For each trial, the script creates:
+
+```text
+output_dir/
+  <h5_file_name>/
+    <h5_file_name>.h5
+    <h5_file_name>_Position.png
+    <h5_file_name>_Velocity.png
+    <h5_file_name>_Ori.png
+    <h5_file_name>_BodyVelocity.png
+    <h5_file_name>_MotorRPM.png
+    <h5_file_name>_Slip.png
+    <h5_file_name>_LateralSlip.png
+    <h5_file_name>_ReferenceVelocity.png
+```
+
+The processed HDF5 file contains:
+
+- `events`
+- `Opti_pos`
+- `Opti_vel`
+- `Opti_ori`
+- `Opti_ori_rate`
+- `vel_body_xy`
+- `motor_rpm`
+- `ref_velocity`
+- `slip`
+
+These processed files are the expected input for `EBSC_Validation.ipynb` and `EBSC_FramesGenerator.py`.
+
+---
+
+### 2. Data Analysis (`EBSC_DataAnalysis.py`)
 
 This script reads rover data from HDF5 files, analyzes position, velocity, orientation, slip, and motor RPM, and saves high-quality plots.
 
@@ -96,7 +191,7 @@ Plots are saved in subfolders under `output_dir`, including position, velocity, 
 
 ---
 
-### 2. Dataset Validation (`EBSC_Validation.ipynb`)
+### 3. Dataset Validation (`EBSC_Validation.ipynb`)
 
 Use this notebook to validate a processed EBSC dataset and regenerate the figures and CSV summaries in `validation_figures/`.
 
@@ -150,7 +245,7 @@ The notebook saves PNG, PDF, and SVG figures plus CSV metric tables under `valid
 
 ---
 
-### 3. Event-Based Frame Generation (`EBSC_FramesGenerator.py`)
+### 4. Event-Based Frame Generation (`EBSC_FramesGenerator.py`)
 
 This script generates grayscale event-based time-surface frames from the `events` dataset in each processed experiment HDF5 file. The expected event format is `[x, y, polarity, timestamp]`.
 
@@ -211,7 +306,7 @@ For each experiment, the script reads the HDF5 `events` dataset, generates S1 gr
 
 ---
 
-### 4. Image Undistortion (`undistort_images.py`)
+### 5. Image Undistortion (`undistort_images.py`)
 
 This script uses camera calibration parameters to undistort images.
 
@@ -248,6 +343,7 @@ Suppose you have:
 
 Set the paths in the relevant script or notebook and run the workflow you need:
 
+- Use `EBSC_PrepareDataset.py` to convert raw HDF5 recordings into synchronized processed dataset files.
 - Use `EBSC_DataAnalysis.py` for exploratory analysis plots.
 - Use `EBSC_Validation.ipynb` for dataset validation figures and metrics.
 - Use `EBSC_FramesGenerator.py` for event-frame generation.
@@ -257,6 +353,8 @@ Set the paths in the relevant script or notebook and run the workflow you need:
 
 ## Troubleshooting
 
+- If dataset preparation fails while reading a raw file, verify that the raw HDF5 file contains `events/data`, `opti_pos/data`, `opti_pos/time`, `motor_speed/data`, and `motor_speed/time`.
+- If the prepared dataset has unexpected values, verify the rover geometry constants and motor sign convention in `compute_ref_velocity`.
 - If no HDF5 files are found in the validation notebook, verify that `PROCESSED_DATA_DIR` points to the processed dataset root.
 - If validation loading fails, verify that the HDF5 dataset names match the expected processed-dataset names.
 - If frame generation skips a file, verify that the file contains an `events` dataset with columns `[x, y, polarity, timestamp]`.
